@@ -1,0 +1,80 @@
+clear, clc, close all
+
+% file specifics parameters
+load('test_data.mat')    % data(c3,c4,cz,class)
+load("filter_coef.mat")  % b,a
+fs = 160;
+
+% general parameters
+mu = [ 9,14];
+be = [15,25];
+% fc_low  =  8;
+% fc_high = 30;
+% f_order =  5;
+window  = 1.0*fs;
+overlap = 0.9*fs;
+% [b,a] = butter(f_order,[fc_low,fc_high]/(fs/2),'bandpass');
+% save("filter_coef.mat", "a","b")
+
+
+%% preprocessing
+data_sliced = [];
+k_start = 1;
+
+while ( (k_start+window) < length(data) )  %length(data)
+    
+    % slicing by window
+    data_window = data(k_start:k_start + window,:);
+    
+    % filtering signal
+    data_window(:,1) = filtfilt(b,a,data_window(:,1));
+    data_window(:,2) = filtfilt(b,a,data_window(:,2));
+    data_window(:,3) = filtfilt(b,a,data_window(:,3));
+    
+    % concatenates data 
+    data_sliced = [data_sliced ; data_window];
+
+    % updates start of array
+    k_start = k_start + window - overlap;
+end
+
+%% separation of classes
+resting = data_sliced(data_sliced(:,4)==0,1:3);
+moving  = data_sliced(data_sliced(:,4)==1,1:3);
+
+%% feature extraction
+% csp filter (needs the 2 categories)[channels x samples]
+[W, lambda, A] = csp(moving',resting');
+v = (W'*resting')';
+restingX  = (W'* resting')';
+movingX  = (W'* moving')';
+% los lambdas se pueden usar como caracteristicas
+
+% relative power
+pMu_rest = bandpower(restingX,fs,mu)/bandpower(restingX);
+pBe_rest = bandpower(restingX,fs,be)/bandpower(restingX);
+
+pMu_move = bandpower(movingX,fs,mu)/bandpower(movingX);
+pBe_move = bandpower(movingX,fs,be)/bandpower(movingX);
+
+%% model training
+
+tt_data = data_sliced(:,1:3);
+tt_y = data_sliced(:,4);
+
+cv = cvpartition(EEG(:,end), 'KFold',10);
+
+
+% SVM Classifier: muy lento o no converge
+% cl_svm = fitcsvm(tt_data, tt_y);
+
+% LDA
+cl_lda = fitcdiscr(tt_data, tt_y);
+
+%% classification
+% tic
+% [~,svm_scores] = predict( cl_svm, tt_data(1,:) );
+% toc
+tic
+[~,lda_scores] = predict( cl_lda, tt_data(1,:) );
+toc
