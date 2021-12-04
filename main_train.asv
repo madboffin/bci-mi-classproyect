@@ -104,9 +104,12 @@ cl_lda = fitcdiscr(xtrain, ytrain);
 % cl_net = feedforwardnet(10, 'traingdm');
 % cl_net = train(cl_net, xtrain', ytrain');
 
-save(strjoin([model_name ".mat"]), "cl_lda", "cl_svm")
+save(strjoin([model_name ".mat"]), "cl_lda")
 
+%% classification
 
+[~,score_svm] = predict( cl_svm, f_move(1:3,1:end-1) );
+[~,score_lda] = predict( cl_lda, f_move(1:3,1:end-1) );  %50 percent slower than svm
 
 %%
 ypred = predict( cl_svm, xtest );
@@ -118,10 +121,9 @@ cp_lda = classperf(ytest, ypred);
 % ypred = perform(net,t,y)( cl_net, xtest );
 % cp_net = classperf(ytest, ypred);
 
-figure, plotconfusion(ytest, ypred)
+figure, plotconfusion(t,y)
 
 %% useful functions
-
 function [signal] = apply_LF(top, left, right, bottom, chann)
     x1 = get_edfdata('data_rest.edf', {top});
     x2 = get_edfdata('data_rest.edf', {left});
