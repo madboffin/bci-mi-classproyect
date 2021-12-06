@@ -1,14 +1,15 @@
 clear, clc, close all
 
-% variables to change with each participant
-% file = uigetfile()
+% variables to change
 record_number = 0;
 fs = 160;
 
 % file specifics parameters
 load('test_data.mat')    % data(c3,c4,cz,class)
 load("filter_coef.mat")  % b,a
-model_name  = ['Model_' num2str(record_number)];
+create_test_array(fs)
+
+model_name  = ['model_' num2str(record_number)];
 
 % general parameters
 mu = [ 9,14];
@@ -18,7 +19,7 @@ overlap = 0.9*fs;
 
 %% preprocessing - processing
 data_sliced = [];
-features = [];
+v_features = [];
 k_start = 1;
 
 while ( (k_start+window) <  length(data)) %length(data)
@@ -37,52 +38,46 @@ while ( (k_start+window) <  length(data)) %length(data)
     data_window(:,1:3) = filtfilt(b,a,data_window(:,1:3));
 
     % calculating power and relative power of beta and mu
-    bands = [];
+    chann_features = [];
     for k=1:3
-        pSM = bandpower(data_window(:,k));
-        pBe = bandpower(data_window(:,k),fs,be);
-        pMu = bandpower(data_window(:,k),fs,mu);
-        pBe_r = pBe/bandpower(data_window(:,k));
-        pMu_r = pMu/bandpower(data_window(:,k));
-
-        % order of features array
-        bands = [bands  pSM pBe pMu pBe_r pMu_r];
+        features = get_features(data_window(:,k),fs);
+        chann_features = [chann_features features];
     end
     
-    bands = [bands data_window(1,4)];
+    chann_features = [chann_features data_window(1,4)];
 
     % concatenating data 
     data_sliced = [data_sliced; data_window];
-    features = [features ; bands];
+    v_features = [v_features ; chann_features];
 
     % updating slice of window
     k_start = k_start + window - overlap;
 end
 
 %% separation of classes
-f_rest = features(features(:,end)==1, :);
-f_move = features(features(:,end)==2, :) ;
+f_rest = v_features(v_features(:,end)==0, :);
+f_move = v_features(v_features(:,end)==1, :) ;
 
 %% ERD - ERS
 % ERD/ERS=(P_event)-(P_rest_avg)/(P_rest_avg)*100
 p_rest_ave = mean(f_rest, 1);
 p_move_ave = mean(f_move, 1);
-SM_erd_ers = (f_move - p_rest_ave) / p_rest_ave * 100
+SM_erd_ers = (f_move - p_rest_ave) / p_rest_ave * 100;
 
 %% csp filter
-data_sli_rest = data_sliced(data_sliced(:,end)==1, 1:3)';
-data_sli_move = data_sliced(data_sliced(:,end)==2, 1:3)';
-
-% csp filter needs the 2 categories. Shape: [channels x samples]
-[W, lambda, A] = csp(data_sli_move, data_sli_rest);
-v = (W'*data_sli_rest)';
-restingX = (W'* data_sli_move)';
-movingX  = (W'* data_sli_move)';
+% data_sli_rest = data_sliced(data_sliced(:,end)==1, 1:3)';
+% data_sli_move = data_sliced(data_sliced(:,end)==2, 1:3)';
+% 
+% % csp filter needs the 2 categories. Shape: [channels x samples]
+% [W, lambda, A] = csp(data_sli_move, data_sli_rest);
+% v = (W'*data_sli_rest)';
+% restingX = (W'* data_sli_move)';
+% movingX  = (W'* data_sli_move)';
 
 % los lambdas se pueden usar como caracteristicas
 %% model training
-tt_data = features(:,1:end-1);
-tt_y    = features(:,end);
+tt_data = v_features(:,1:end-1);
+tt_y    = v_features(:,end);
 
 % cross validation
 % for k = 1:10
@@ -101,12 +96,10 @@ cl_svm = fitcsvm(xtrain, ytrain);
 cl_lda = fitcdiscr(xtrain, ytrain);
 
 % ANN
-% cl_net = feedforwardnet(10, 'traingdm');
-% cl_net = train(cl_net, xtrain', ytrain');
+cl_net = feedforwardnet(10, 'traingdm');
+cl_net = train(cl_net, xtrain', ytrain');
 
 save(strjoin([model_name ".mat"]), "cl_lda", "cl_svm")
-
-
 
 %%
 ypred = predict( cl_svm, xtest );
@@ -115,10 +108,10 @@ cp_svm = classperf(ytest, ypred);
 ypred = predict( cl_lda, xtest );
 cp_lda = classperf(ytest, ypred);
 
-% ypred = perform(net,t,y)( cl_net, xtest );
-% cp_net = classperf(ytest, ypred);
+ypred = cl_net(xtest');
+perform( cl_net, ypred, ytest' );
 
-figure, plotconfusion(ytest, ypred)
+figure, plotconfusion(ytest', ypred)
 
 %% useful functions
 
