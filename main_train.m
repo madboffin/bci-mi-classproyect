@@ -60,9 +60,8 @@ f_move = v_features(v_features(:,end)==1, :) ;
 
 %% ERD - ERS
 % ERD/ERS=(P_event)-(P_rest_avg)/(P_rest_avg)*100
-p_rest_ave = mean(f_rest, 1);
-p_move_ave = mean(f_move, 1);
-SM_erd_ers = (f_move - p_rest_ave) / p_rest_ave * 100;
+p_rest_avg = mean(f_rest, 1);
+SM_erd_ers = (f_move - p_rest_avg) / p_rest_avg * 100;
 
 %% csp filter
 % data_sli_rest = data_sliced(data_sliced(:,end)==1, 1:3)';

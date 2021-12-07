@@ -1,3 +1,5 @@
+clc, clear, close all
+
 import java.io.*
 import java.nio.*
 
@@ -25,15 +27,17 @@ if socket_ok
 %     a = tic;
     while (samples <= (fs*record_duration))
         [eeg, marker, timestamp] = EegSingleRecord(32, false, true, ch);
+        eeg = double(eeg);
+
         window  = 1.0*fs;
         overlap = 0.9*fs;
-        v_eeg = [v_eeg;eeg];
+        v_eeg = [v_eeg ; eeg];
         v_markers = [v_markers;marker];
         v_timestamps = [v_timestamps;timestamp];
 
-        c3 = v_eeg(:,15);
+        c3 = v_eeg(:,18);
         c4 = v_eeg(:,11);
-        cz = v_eeg(:, 3);
+        cz = v_eeg(:,14);
         
         if (samples < window)
             c3_v = [zeros(window-samples,1); c3];
@@ -63,15 +67,19 @@ if socket_ok
 
                 % send command to unity
                 if class == 0
-                send_msg("down");
+                    send_msg("down");
                 elseif class ==1
-                send_msg("up");
+                    send_msg("up");
                 end
                 cnt = 0;
             end
         end
-
+        
+        % plotting array
         figure(1)
+        c3_v = filtfilt(b,a,c3_v);
+        cz_v = filtfilt(b,a,cz_v);
+        c4_v = filtfilt(b,a,c4_v);
         subplot(311), plot(cz_v)
         subplot(312), plot(c3_v)
         subplot(313), plot(c4_v)
