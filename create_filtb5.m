@@ -1,6 +1,6 @@
 clc, clear, close all
 
-fs = 160;
+fs = 500;
 
 fc_low  =  8;
 fc_high = 30;

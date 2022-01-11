@@ -2,23 +2,26 @@ function create_test_array(fs)
 % info = edfinfo(filename);
 % filename = 'data_rest.edf';
 %% reading edf data for resting condition
-filename = uigetfile({'*.edf';'*.easy'});
+filename = uigetfile({'*.easy';'*.edf'})
 [cz,c3,c4] = get_data(filename,fs);
 
 rest = [ c3 c4 cz ones(length(c3),1)*0 ];
-rest = rest(1:20*fs,:);
+rest = rest(1*fs:20*fs,:);
 
 %% reading edf data for movement condition
-filename = uigetfile({'*.edf';'*.easy'});
+filename = uigetfile({'*.easy';'*.edf'})
 [cz,c3,c4] = get_data(filename,fs);
 
 move = [ c3 c4 cz ones(length(c3),1)*1 ];
-move = move(1:20*fs,:);
+move = move(1*fs:20*fs,:);
 
+% figure
+% subplot(211), plot(rest(:,1))
+% subplot(211), plot(move(:,1))
 %% combining data into a single file
-size(rest), size(move)
 data = [rest; move];
 save("test_data.mat", "data")
+
 end
 
 %% useful functions
@@ -44,21 +47,9 @@ function [cz,c3,c4] = get_data(filename,fs)
         % careful, struct might change channel position
         data = struct2cell( tdfread(filename) );
         cz  = data{3}(5*fs:25*fs);
-        c3  = data{15}(5*fs:25*fs);
-        c4  = data{11}(5*fs:25*fs);
+        c3  = data{1}(5*fs:25*fs);  % 15
+        c4  = data{2}(5*fs:25*fs);  % 11
     else
         error('file extension not available, use a edf or easy file')
     end
 end
-
-% for laplacian filter (taking mean of surrounding electrodes)
-% fc3 = get_edfdata(filename, {'Fc3.'});
-% c5  = get_edfdata(filename, {'C5..'});
-% c1  = get_edfdata(filename, {'C1..'});
-% cp3 = get_edfdata(filename, {'Cp3.'});
-% fcz = get_edfdata(filename, {'Fcz.'});
-% cpz = get_edfdata(filename, {'Cpz.'});
-% fc4 = get_edfdata(filename, {'Fc4.'});
-% c2  = get_edfdata(filename, {'C2..'});
-% c6  = get_edfdata(filename, {'C6..'});
-% cp4 = get_edfdata(filename, {'Cp4.'});

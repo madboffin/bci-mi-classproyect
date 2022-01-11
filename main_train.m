@@ -1,15 +1,12 @@
 clear, clc, close all
 
 % variables to change
-record_number = 0;
-fs = 160;
+fs = 500;
 
 % file specifics parameters
-load('test_data.mat')    % data(c3,c4,cz,class)
-load("filter_coef.mat")  % b,a
 create_test_array(fs)
-
-model_name  = ['model_' num2str(record_number)];
+load('test_data.mat')    % data
+model_name  = 'model_0';
 
 % general parameters
 mu = [ 9,14];
@@ -18,6 +15,8 @@ window  = 1.0*fs;
 overlap = 0.9*fs;
 
 %% preprocessing - processing
+
+load("filter_coef.mat")  % b,a
 data_sliced = [];
 v_features = [];
 k_start = 1;
@@ -82,7 +81,7 @@ tt_y    = v_features(:,end);
 % for k = 1:10
 %     pred = sign(cl_net(xtest'));
 % end
-cv = cvpartition(length(tt_y), 'HoldOut', 0.6);
+cv = cvpartition(length(tt_y), 'HoldOut', 0.3);
 xtrain = tt_data(training(cv),:);
 xtest  = tt_data(test(cv),:);
 ytrain = tt_y(training(cv));
@@ -90,35 +89,34 @@ ytest  = tt_y(test(cv));
 
 % SVM Classifier
 cl_svm = fitcsvm(xtrain, ytrain);
+ypred  = predict( cl_svm, xtest );
+cp_svm = classperf(ytest, ypred);
+% cp_svm.CorrectRate
 
 % LDA
 cl_lda = fitcdiscr(xtrain, ytrain);
+ypred  = predict( cl_lda, xtest );
+cp_lda = classperf(ytest, ypred);
+cp_lda.CorrectRate
+cp_lda.Sensitivity
+cp_lda.Specificity
+
 
 % ANN
-cl_net = feedforwardnet(10, 'traingdm');
-cl_net = train(cl_net, xtrain', ytrain');
+% cl_net = feedforwardnet([5,5], 'traingdm');
+% cl_net = train(cl_net, xtrain', ytrain');
+% ypred  = cl_net(xtest');
+% perform( cl_net, ypred, ytest' );
 
 save(strjoin([model_name ".mat"]), "cl_lda", "cl_svm")
 
-%%
-ypred = predict( cl_svm, xtest );
-cp_svm = classperf(ytest, ypred);
-
-ypred = predict( cl_lda, xtest );
-cp_lda = classperf(ytest, ypred);
-
-ypred = cl_net(xtest');
-perform( cl_net, ypred, ytest' );
-
-figure, plotconfusion(ytest', ypred)
-
 %% useful functions
 
-function [signal] = apply_LF(top, left, right, bottom, chann)
+function [center] = apply_LF(top, left, right, bottom, chann)
     x1 = get_edfdata('data_rest.edf', {top});
     x2 = get_edfdata('data_rest.edf', {left});
     x3 = get_edfdata('data_rest.edf', {right});
     x4 = get_edfdata('data_rest.edf', {bottom});
     LF_avg = mean( [x1 x2 x3 x4], 2 );
-    signal = get_edfdata('data_rest.edf', {chann}) - LF_avg;
+    center = get_edfdata('data_rest.edf ', {chann}) - LF_avg;
 end
