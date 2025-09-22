@@ -1,6 +1,6 @@
 # Brain-Computer Interface (BCI) Motor Imagery Classification Project
 
-This project implements a Brain-Computer Interface system that processes and classifies EEG (Electroencephalography) data, specifically focusing on motor imagery tasks. The system can distinguish between different mental states, such as rest state and right-hand motor imagery.
+This project implements a Brain-Computer Interface system that processes and classifies EEG (Electroencephalography) data, specifically focusing on motor imagery tasks. The system can distinguish between different mental states, such as rest state and right-hand motor imagery. The resulting classification is sent as input for a game with the intent of giving feedback to the user.
 
 ## Overview
 
